@@ -2,7 +2,7 @@
     --bg-color: #2D3A3A;
     --container-color: #424874;
     --font-color: #EEF0F2;
-    --tooltip-color: #A2999E;
+    --highlight-color: orange;
 }
 
 body {
@@ -36,6 +36,11 @@ svg {
 
 #title {
     font-size: 2rem;
+}
+
+.county:hover {
+    stroke-width: 2;
+    stroke: var(--highlight-color);
 }
 
 .legend-label {

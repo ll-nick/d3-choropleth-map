@@ -9,7 +9,6 @@ class Tooltip {
             left: 10
         }
 
-
         this.tooltipGroup = svg
             .append('g')
             .attr('id', 'tooltip-group')

@@ -1,6 +1,5 @@
 class ChoroplethMapPlotter {
     constructor(topography, dataset, options) {
-        // Store input
         if (!topography || !dataset || !options || !options.width || !options.height || !options.padding) {
             throw new Error('Invalid parameters: topography, dataset and options with width, height, and padding are required.');
         }
@@ -14,7 +13,6 @@ class ChoroplethMapPlotter {
         this.pathGenerator = (obj) => {
             const projection = d3.geoIdentity()
                 .fitSize([this.width - this.padding.left - this.padding.right, this.height - this.padding.top - this.padding.bottom], obj);
-            // const projection = null
             return d3.geoPath(projection);
         }
     }
@@ -48,14 +46,15 @@ class ChoroplethMapPlotter {
         let legendX = this.width - this.padding.right - rectWidth * numBlocks;
         let legendY = this.padding.top / 2;
 
+        let minEducation = d3.min(this.dataset, (d) => d.bachelorsOrHigher);
+        let maxEducation = d3.max(this.dataset, (d) => d.bachelorsOrHigher);
+        let step = (maxEducation - minEducation) / numBlocks;
+
         //Add SVG Legend 
         let legend = svg.append("g")
             .attr('transform', 'translate(' + legendX + ',' + legendY + ')')
             .attr("id", "legend");
 
-        let minEducation = d3.min(this.dataset, (d) => d.bachelorsOrHigher);
-        let maxEducation = d3.max(this.dataset, (d) => d.bachelorsOrHigher);
-        let step = (maxEducation - minEducation) / numBlocks;
 
         //Add colored rectangles to legend
         for (var i = 0; i < numBlocks; i++) {
