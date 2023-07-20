@@ -32,9 +32,6 @@ class ChoroplethMapPlotter {
             .attr("stroke", "white")
             .attr("stroke-width", "1.5")
             .attr("fill", "none")
-            .on('mouseover', (event, d) => {
-                d.attr("stroke", "red")
-            })
 
         // this.svg.selectAll(".state").on("mouseover", function (event, d) {
         //     d3.select(this).attr("stroke", "red").raise();
@@ -108,9 +105,8 @@ class ChoroplethMapPlotter {
         }
     }
 
-    #getBachelorsOrHigher(id) {
-        let dataPoint = this.dataset.find(obj => obj.fips === id)
-        return dataPoint.bachelorsOrHigher
+    #getDataPoint(id) {
+        return this.dataset.find(obj => obj.fips === id)
     }
 
     #plotData() {
@@ -122,12 +118,15 @@ class ChoroplethMapPlotter {
             .append("path")
             .attr("class", "county")
             .attr("d", d3.geoPath())
-            .attr("fill", d => this.colorScale(this.#getBachelorsOrHigher(d.id)))
+            .attr("fill", d => this.colorScale(this.#getDataPoint(d.id).bachelorsOrHigher))
             .attr("data-fips", d => d.id)
-            .attr("data-education", d => this.#getBachelorsOrHigher(d.id))
+            .attr("data-education", d => this.#getDataPoint(d.id).bachelorsOrHigher)
             .on('mouseover', (event, d) => {
-                const tooltipContent = "abc"
-                const dataEducation = this.#getBachelorsOrHigher(d.id)
+                const dataPoint = this.#getDataPoint(d.id)
+                const tooltipContent = dataPoint.area_name + ', ' +
+                    dataPoint.state + ': ' +
+                    dataPoint.bachelorsOrHigher + '%'
+                const dataEducation = this.#getDataPoint(d.id).bachelorsOrHigher
                 this.tooltip.showTooltip(tooltipContent, event.x, event.y, dataEducation);
             })
             .on('mouseout', (e) => {
