@@ -11,72 +11,45 @@ class ChoroplethMapPlotter {
         this.padding = options.padding
 
         this.#createColorScale()
-        this.#createHTMLElements()
+        this.pathGenerator = (obj) => {
+            const projection = d3.geoIdentity()
+                .fitSize([this.width - this.padding.left - this.padding.right, this.height - this.padding.top - this.padding.bottom], obj);
+            // const projection = null
+            return d3.geoPath(projection);
+        }
     }
 
     plot() {
-        this.#createLegend()
-        this.#plotData()
-        this.#drawStateLines()
-    }
+        let svg = d3.create('svg')
+            .attr('viewBox', '0 0 ' + this.width + ' ' + this.height)
+        let mapGroup = svg.append('g')
+            .attr("transform", `translate(${this.padding.left}, ${this.padding.top})`);
+        let tooltip = new Tooltip(mapGroup);
 
-    #drawStateLines() {
-        const states = topojson.feature(this.topography, this.topography.objects.states);
+        this.#createLegend(svg)
+        this.#plotData(mapGroup)
+        this.#enableTooltipOnMouseOver(mapGroup, tooltip)
+        this.#drawStateLines(mapGroup)
 
-        this.svg.selectAll(".state")
-            .data(states.features)
-            .enter()
-            .append("path")
-            .attr("class", "state")
-            .attr("d", d3.geoPath())
-            .attr("stroke", "white")
-            .attr("stroke-width", "1.5")
-            .attr("fill", "none")
-
-        // this.svg.selectAll(".state").on("mouseover", function (event, d) {
-        //     d3.select(this).attr("stroke", "red").raise();
-        // })
-        //     .on("mouseout", function (event, d) {
-        //         d3.select(this).attr("stroke", "white");
-        //     });
-
+        return svg.node()
     }
 
     #createColorScale() {
         let bachelorsOrHigher = this.dataset.map(d => d.bachelorsOrHigher)
-        let domain = d3.extent(bachelorsOrHigher)
-        let range = d3.schemeGreens[9]
-        this.colorScale = d3.scaleSequential(domain, d3.interpolateGreens)
+        this.colorScale = d3.scaleSequential(d3.extent(bachelorsOrHigher), d3.interpolateGreens)
     }
 
-    #createHTMLElements() {
-        this.tooltip = new Tooltip();
-
-        d3.select('#chart-container')
-            .append('h1')
-            .attr('id', 'title')
-            .text('United States Educational Attainment')
-
-        d3.select('#chart-container')
-            .append('div')
-            .attr('id', 'description')
-            .text('Percentage of adults age 25 and older with a bachelor\'s degree or higher (2010-2014)')
-
-        this.svg = d3.select('#chart-container')
-            .append('svg')
-            .attr('viewBox', '0 0 ' + this.width + ' ' + this.height)
-    }
-
-    #createLegend() {
+    #createLegend(svg) {
         // Legend Settings
-        let legendX = this.width * 0.8;
-        let legendY = this.height * 0.2;
         let numBlocks = 8;
-        let rectHeight = 15;
-        let rectWidth = 40;
+        let rectHeight = 12;
+        let rectWidth = 35;
+        let gapToText = 2;
+        let legendX = this.width - this.padding.right - rectWidth * numBlocks;
+        let legendY = this.padding.top / 2;
 
         //Add SVG Legend 
-        let legend = this.svg.append("g")
+        let legend = svg.append("g")
             .attr('transform', 'translate(' + legendX + ',' + legendY + ')')
             .attr("id", "legend");
 
@@ -98,40 +71,64 @@ class ChoroplethMapPlotter {
         //Add text to legend
         for (var i = 0; i <= numBlocks; i++) {
             legend.append("text")
+                .attr("class", "legend-label")
                 .attr("x", i * rectWidth)
-                .attr("y", 2 * rectHeight)
+                .attr("y", 2 * rectHeight + gapToText)
                 .style("text-anchor", "middle")
                 .text(Math.round(minEducation + i * step) + '%');
         }
+    }
+
+    #plotData(svg) {
+        const counties = topojson.feature(this.topography, this.topography.objects.counties);
+
+        svg.selectAll(".county")
+            .data(counties.features)
+            .enter()
+            .append("path")
+            .attr("class", "county")
+            .attr("d", this.pathGenerator(counties))
+            .attr("fill", d => this.colorScale(this.#getDataPoint(d.id).bachelorsOrHigher))
+            .attr("data-fips", d => d.id)
+            .attr("data-education", d => this.#getDataPoint(d.id).bachelorsOrHigher)
+
+    }
+
+    #enableTooltipOnMouseOver(svg, tooltip) {
+        svg.selectAll(".county")
+            .on('mouseover', (event, d) => {
+                const dataEducation = this.#getDataPoint(d.id).bachelorsOrHigher
+                let [mouseXRelativeToSVG, mouseYRelativeToSVG] = d3.pointer(event, svg.node())
+                tooltip.showTooltip(this.#getToolTipTextForCounty(d), mouseXRelativeToSVG, mouseYRelativeToSVG, dataEducation);
+            })
+            .on('mouseout', (e) => {
+                tooltip.hideTooltip();
+            })
+    }
+
+    #drawStateLines(svg) {
+        const states = topojson.feature(this.topography, this.topography.objects.states);
+
+        svg.selectAll('.state')
+            .data(states.features)
+            .enter()
+            .append('path')
+            .attr('class', 'state')
+            .attr('d', this.pathGenerator(states))
+            .attr('stroke', 'white')
+            .attr('stroke-width', '1.5')
+            .attr('fill', 'none')
     }
 
     #getDataPoint(id) {
         return this.dataset.find(obj => obj.fips === id)
     }
 
-    #plotData() {
-
-        const counties = topojson.feature(this.topography, this.topography.objects.counties);
-        this.svg.selectAll(".county")
-            .data(counties.features)
-            .enter()
-            .append("path")
-            .attr("class", "county")
-            .attr("d", d3.geoPath())
-            .attr("fill", d => this.colorScale(this.#getDataPoint(d.id).bachelorsOrHigher))
-            .attr("data-fips", d => d.id)
-            .attr("data-education", d => this.#getDataPoint(d.id).bachelorsOrHigher)
-            .on('mouseover', (event, d) => {
-                const dataPoint = this.#getDataPoint(d.id)
-                const tooltipContent = dataPoint.area_name + ', ' +
-                    dataPoint.state + ': ' +
-                    dataPoint.bachelorsOrHigher + '%'
-                const dataEducation = this.#getDataPoint(d.id).bachelorsOrHigher
-                this.tooltip.showTooltip(tooltipContent, event.x, event.y, dataEducation);
-            })
-            .on('mouseout', (e) => {
-                this.tooltip.hideTooltip();
-            })
+    #getToolTipTextForCounty(d) {
+        const dataPoint = this.#getDataPoint(d.id)
+        return dataPoint.area_name + ', ' +
+            dataPoint.state + ': ' +
+            dataPoint.bachelorsOrHigher + '%'
     }
 
 }

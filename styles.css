@@ -38,23 +38,16 @@ svg {
     font-size: 2rem;
 }
 
-#x-axis,
-#y-axis,
-#legend-axis {
-    color: var(--font-color);
-    font-size: 0.9rem;
-}
-
-#y-axis-label {
-    font-size: 1rem;
+.legend-label {
+    fill: var(--font-color);
+    font-size: 0.8rem;
 }
 
 #tooltip {
-    background-color: var(--tooltip-color);
-    position: absolute;
-    font-size: 0.7rem;
-    padding: 0.7rem;
-    border-radius: 1rem;
-    color: var(--font-color);
+    fill: var(--font-color);
+    font-size: 1rem;
+}
+
+#tooltip-group {
     transition: opacity 200ms;
 }
